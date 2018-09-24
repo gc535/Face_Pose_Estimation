@@ -10,6 +10,8 @@ from keras.layers import Dense
 from keras.models import load_model
 from keras.optimizers import SGD
 import h5py               # for saving models into .h5 file
+from train_monitor_callback import Monitor
+
 ### argument parser ###
 ag = argparse.ArgumentParser()
 ag.add_argument("-r", "--resize-factor", required=True, help="parameters to resize the input image to desired size")
@@ -126,10 +128,11 @@ def listimages(img_dir):
 ######### This is util method for percentage bar display #######
 def train_progress_bar_util(action):
     cur_dir = os.getcwd()
+    par_dir = os.path.join(cur_dir, os.pardir)
     toolbar_width = 40
     TOTAL_NUM_FILES = 0
     for label in range(1,4):    # directory idx used as tag
-        gallery_path = os.path.join(cur_dir, action, str(label))
+        gallery_path = os.path.join(par_dir, action, str(label))
         imgFiles = listimages(gallery_path)
         TOTAL_NUM_FILES += len(imgFiles)
     sys.stdout.write("preparing %sing data...\n" % action)
@@ -143,8 +146,9 @@ def train_progress_bar_util(action):
 
 def test_progress_bar_util(action, label):
     cur_dir = os.getcwd()
+    par_dir = os.path.join(cur_dir, os.pardir)
     toolbar_width = 40
-    gallery_path = os.path.join(cur_dir, action, str(label))
+    gallery_path = os.path.join(par_dir, action, str(label))
     imgFiles = listimages(gallery_path)
     TOTAL_NUM_FILES = len(imgFiles)
     sys.stdout.write("\npreparing %sing data...\n" % action)
@@ -164,6 +168,7 @@ resize = resize.split(',')
 cellSize = int(args["cell_size"])
 resize_row, resize_col = int(resize[0]), int(resize[1]) 
 cur_dir = os.getcwd()
+par_dir = os.path.join(cur_dir, os.pardir)
 
 train_data_x = []
 train_data_y = []
@@ -179,7 +184,7 @@ else:
     pre_precent = 0
     # compute each feature vector 
     for label in range(1,4):    # directory idx used as tag
-        gallery_path = cur_dir+'/train/'+str(label)
+        gallery_path = par_dir+'/train/'+str(label)
         imgFiles = listimages(gallery_path)
         for file in imgFiles:
             # update prcenetage
@@ -235,17 +240,18 @@ else:
     MLP_Model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
     # train
-    MLP_Model.fit(train_data_x, train_data_y, epochs=5, batch_size=10)
+    monitor_callback = Monitor()
+    MLP_Model.fit(train_data_x, train_data_y, epochs=5, batch_size=10, callbacks=[monitor_callback], verbose=1)
     MLP_Model.save(os.path.join(cur_dir, 'LBP_MPL_model.h5'))
 
 sys.stdout.write('\nModel preparation comlpleted!')
 sys.stdout.flush()
 
 
-###########################
-### now start training  ###
-###########################
-test_dir = os.path.join(cur_dir, 'test')
+##########################
+### now start testing  ###
+##########################
+test_dir = os.path.join(par_dir, 'test')
 for label in range(1,4):    # test directory also has all three label images
     gallery_path = os.path.join(test_dir, str(label))
     testFiles = listimages(gallery_path)
