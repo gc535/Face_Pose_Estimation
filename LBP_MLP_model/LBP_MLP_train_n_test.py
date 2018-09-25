@@ -14,9 +14,12 @@ from train_monitor_callback import Monitor
 
 ### argument parser ###
 ag = argparse.ArgumentParser()
-ag.add_argument("-r", "--resize-factor", required=True, help="parameters to resize the input image to desired size")
-ag.add_argument("-c", "--cell-size", required=True, help="parameters to define the cell size")
+ag.add_argument("-r", "--resize-factor", required=True, help="parameters to resize the input image to desired size")    # format: -r 128,96
+ag.add_argument("-c", "--cell-size", required=True, help="parameters to define the cell size")                          # format: -c 8  (row and colume are assume to be the same)
+ag.add_argument("-e", "--epoch-num", required=False, help="parameters to specify the number of training epochs")        # format: -e 50 (defualt is 50)
+ag.add_argument("-f", "--force-training", required=False, help="force trainig even if pre-trained model is already found, used for continue traning from checkpoint")   # format: -f true (default is None)
 args = vars(ag.parse_args())
+
 
 
 ###################################################################
@@ -131,7 +134,7 @@ def train_progress_bar_util(action):
     par_dir = os.path.join(cur_dir, os.pardir)
     toolbar_width = 40
     TOTAL_NUM_FILES = 0
-    for label in range(1,4):    # directory idx used as tag
+    for label in range(1,5):    # directory idx used as tag
         gallery_path = os.path.join(par_dir, action, str(label))
         imgFiles = listimages(gallery_path)
         TOTAL_NUM_FILES += len(imgFiles)
@@ -183,7 +186,7 @@ else:
     (progress_tracker, FILE_PER_PERCENT) = train_progress_bar_util('train')  # set up the progress bar
     pre_precent = 0
     # compute each feature vector 
-    for label in range(1,4):    # directory idx used as tag
+    for label in range(1,5):    # directory idx used as tag
         gallery_path = par_dir+'/train/'+str(label)
         imgFiles = listimages(gallery_path)
         for file in imgFiles:
@@ -197,11 +200,8 @@ else:
 
             img = cv2.imread(os.path.join(gallery_path, file))
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            #(w, h) = img.shape
-            #print('image shape(h, w) %d * %d now resizing to 128 * 64' % (h, w))
-            #resized_img = cv2.resize(img, (128, 64))
             train_data_x.append(computeLFBFeatureVector_rotation_uniform(img, (cellSize, cellSize), size=(resize_row, resize_col), doCrob=False))
-            onehot_encode = [0, 0, 0]
+            onehot_encode = [0, 0, 0, 0]
             onehot_encode[label-1] = 1
             train_data_y.append(onehot_encode)
     train_data_x = np.array(train_data_x, dtype='f')
@@ -223,25 +223,35 @@ print(train_data_y.shape)
 ###########################
 sys.stdout.write('\nNow start training...')
 sys.stdout.flush()
+
+epoch_num = 50
+if args["epoch_num"]:
+    epoch_num = int(args["epoch_num"])
+
+# prepare the callback method for monitoring training process
+monitor_callback = Monitor()
+
 if os.path.exists(os.path.join(cur_dir, 'LBP_MPL_model.h5')):
-    sys.stdout.write('\nTrained model alreayd exists in the current directory, loading it from the file...')
+    sys.stdout.write('\nTrained model alreayd exists in the current directory, loading it from the file...\n\n')
     sys.stdout.flush()
     MLP_Model = load_model(os.path.join(cur_dir, 'LBP_MPL_model.h5'))
+    # continue from checkpoint if -f option is specified with "true"
+    if args["force_training"] == "true":
+        MLP_Model.fit(train_data_x, train_data_y, epochs=epoch_num, batch_size=10, callbacks=[monitor_callback], verbose=1)
+        MLP_Model.save(os.path.join(cur_dir, 'LBP_MPL_model.h5'))
+        
 else:    
     # build the model
     MLP_Model = Sequential()
-    MLP_Model.add(Dense(300, input_dim=9*(resize_row//cellSize)*(resize_col//cellSize), activation='relu'))
-    MLP_Model.add(Dense(100, activation='relu'))
+    MLP_Model.add(Dense(100, input_dim=9*(resize_row//cellSize)*(resize_col//cellSize), activation='relu'))
     MLP_Model.add(Dense(60, activation='relu'))
-    MLP_Model.add(Dense(3, activation='softmax')) 
+    MLP_Model.add(Dense(4, activation='softmax')) 
 
     # compile the model
-    sgd = SGD(lr=0.01, momentum=0.0, decay=0.0, nesterov=False)
     MLP_Model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
     # train
-    monitor_callback = Monitor()
-    MLP_Model.fit(train_data_x, train_data_y, epochs=5, batch_size=10, callbacks=[monitor_callback], verbose=1)
+    MLP_Model.fit(train_data_x, train_data_y, epochs=epoch_num, batch_size=10, callbacks=[monitor_callback], verbose=1)
     MLP_Model.save(os.path.join(cur_dir, 'LBP_MPL_model.h5'))
 
 sys.stdout.write('\nModel preparation comlpleted!')
@@ -252,7 +262,7 @@ sys.stdout.flush()
 ### now start testing  ###
 ##########################
 test_dir = os.path.join(par_dir, 'test')
-for label in range(1,4):    # test directory also has all three label images
+for label in range(1,5):    # test directory also has all three label images
     gallery_path = os.path.join(test_dir, str(label))
     testFiles = listimages(gallery_path)
     test_data_x = []
@@ -269,8 +279,8 @@ for label in range(1,4):    # test directory also has all three label images
 
         img = cv2.imread(os.path.join(gallery_path, file))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        test_data_x.append(computeLFBFeatureVector_rotation_uniform(img, (8, 8), size=(resize_row, resize_col), doCrob=False))
-        onehot_encode = [0, 0, 0]
+        test_data_x.append(computeLFBFeatureVector_rotation_uniform(img, (cellSize, cellSize), size=(resize_row, resize_col), doCrob=False))
+        onehot_encode = [0, 0, 0, 0]
         onehot_encode[label-1] = 1
         expect_label.append(onehot_encode)
 
@@ -288,4 +298,6 @@ for label in range(1,4):    # test directory also has all three label images
     scores = MLP_Model.evaluate(test_data_x, expect_label)
     print("\n%s: %.2f%%" % (MLP_Model.metrics_names[1], scores[1]*100))
     print('---------------------')
+
+raw_input('press "enter" to exit the program.')
 
