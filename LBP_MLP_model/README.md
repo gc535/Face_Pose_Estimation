@@ -7,9 +7,16 @@ Dependency: keras (tensorflow, or other DL backend), opencv-python, h5py
 
 
 #### run the program using:
-'''
+```
 python main_train_n_test.py -r 128,96 -c 16 [[optional] -e 50] [[optional] -f true]  
-'''
+```
+-r: resize image
+
+-c cell size
+
+-e number of epoch to train
+
+-f continue training from pre-trained checkpoint
 
 
 Current Model config:
