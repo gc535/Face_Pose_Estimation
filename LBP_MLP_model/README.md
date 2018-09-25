@@ -5,6 +5,13 @@ All training data and testing data are included in the upper directory.
 
 Dependency: keras (tensorflow, or other DL backend), opencv-python, h5py
 
+
+#### run the program using:
+'''
+python main_train_n_test.py -r 128,96 -c 16 [[optional] -e 50] [[optional] -f true]  
+'''
+
+
 Current Model config:
 
     1st layer: input-dim=9*NumOfCell output-dim=100     activation=relu
