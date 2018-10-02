@@ -1,0 +1,14 @@
+train_net: "/home/ubuntu/Desktop/LBP_MLP/caffe_src/LBP_MLP.prototxt"
+base_lr: 0.0010000000475
+display: 25
+max_iter: 50
+lr_policy: "inv"
+gamma: 9.99999974738e-05
+power: 0.75
+momentum: 0.899999976158
+weight_decay: 0.000500000023749
+snapshot: 50
+snapshot_prefix: "LBP_MLP"
+solver_mode: GPU
+random_seed: 831486
+type: "Adam"
