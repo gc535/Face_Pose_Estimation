@@ -1,5 +1,6 @@
 import os
 import sys
+from matplotlib import pyplot as plt
 
 ######## util to load all images from current directory ##########
 def listimages(img_dir):

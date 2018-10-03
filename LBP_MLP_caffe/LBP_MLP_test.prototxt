@@ -45,10 +45,10 @@ layer {
   top: "ip2"
 }
 layer {
-  name: "score"
+  name: "ip3"
   type: "InnerProduct"
   bottom: "ip2"
-  top: "score"
+  top: "ip3"
   inner_product_param {
     num_output: 4
     weight_filler {
@@ -57,9 +57,15 @@ layer {
   }
 }
 layer {
-  name: "loss"
-  type: "SoftmaxWithLoss"
-  bottom: "score"
+  name: "prob"
+  type: "Softmax"
+  bottom: "ip3"
+  top: "prob"
+}
+layer {
+  name: "accuracy"
+  type: "Accuracy"
+  bottom: "prob"
   bottom: "label"
-  top: "loss"
+  top: "accuracy"
 }

@@ -5,7 +5,7 @@ import caffe
 import os
 
 
-def LBP_MLP(hdf5, batch_size):
+def LBP_MLP(hdf5, batch_size, phase):
     # our version of LeNet: a series of linear and simple nonlinear transformations
     n = caffe.NetSpec()
     n.data, n.label = L.HDF5Data(batch_size=batch_size, source=hdf5, ntop=2)
@@ -15,8 +15,13 @@ def LBP_MLP(hdf5, batch_size):
     n.relu1 = L.ReLU(n.ip1, in_place=True)
     n.ip2 = L.InnerProduct(n.relu1, num_output=60, weight_filler=dict(type='xavier'))
     n.relu2 = L.ReLU(n.ip2, in_place=True)
-    n.score = L.InnerProduct(n.relu2, num_output=4, weight_filler=dict(type='xavier'))
-    n.loss = L.SoftmaxWithLoss(n.score, n.label)
+    n.ip3 = L.InnerProduct(n.relu2, num_output=4, weight_filler=dict(type='xavier'))
+    if phase=='train':
+        n.loss = L.SoftmaxWithLoss(n.ip3, n.label)
+    elif phase=='test':
+        n.prob = L.Softmax(n.ip3)
+        n.accuracy = L.Accuracy(n.prob, n.label)
+    
     return n.to_proto()
 
 def Solver(trainModel, testModel):
@@ -36,10 +41,10 @@ def Solver(trainModel, testModel):
     s.type = "Adam"
 
     # Set the initial learning rate for SGD.
-    s.base_lr = 0.001  # EDIT HERE to try different learning rates
+    s.base_lr = 0.0001  # EDIT HERE to try different learning rates
     # Set momentum to accelerate learning by
     # taking weighted average of current and previous updates.
-    s.momentum = 0.9
+    s.momentum = 0.99
     # Set weight decay to regularize and prevent overfitting
     s.weight_decay = 5e-4
 
@@ -50,10 +55,10 @@ def Solver(trainModel, testModel):
     s.power = 0.75
     # EDIT HERE to try the fixed rate (and compare with adaptive solvers)
     # `fixed` is the simplest policy that keeps the learning rate constant.
-    # s.lr_policy = 'fixed'
+    #s.lr_policy = 'fixed'
 
     # Display the current training loss and accuracy every 1000 iterations.
-    s.display = 25
+    s.display = 1000
 
     # Snapshots are files used to store networks we've trained.
     # We'll snapshot every 5K iterations -- twice during training.

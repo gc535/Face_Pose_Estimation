@@ -49,32 +49,47 @@ testData = exportH5PY(test_data_x, test_data_y, modelName+'_test_data_path')
 
 ### prepare model and sovler
 with open(trainModel, 'w') as f:
-    f.write(str(LBP_MLP(trainData, 100)))
+    f.write(str(LBP_MLP(trainData, 100, 'train')))
 
 with open(testModel, 'w') as f:
-    f.write(str(LBP_MLP(testData, 10)))
+    f.write(str(LBP_MLP(testData, 10, 'test')))
 
 solver_path = Solver(trainModel, testModel)
 solver = caffe.get_solver(solver_path)
 
 ### training loop
 
+monitor = Monitor()
 for e in range(epochs):
     print("starting new epoch...")
     solver.step(100)
 
     print('epoch: ', e, 'testing...')
-    print(solver.net.blobs['loss'].data)
+    #print(solver.net.blobs['loss'].data)
+    loss = solver.net.blobs['loss'].data[()]
+    #print(loss.shape, type(loss))
     correct = 0
     for test_it in range(10):
         solver.test_nets[0].forward()
         #correct += solver.test_nets[0].blobs['accuracy'].data
-        correct += sum(solver.test_nets[0].blobs['score'].data.argmax(1)
-                       == solver.test_nets[0].blobs['label'].data)
-        print(solver.test_nets[0].blobs['score'].data)
-        print(solver.test_nets[0].blobs['score'].data.argmax(1))
-        print(solver.test_nets[0].blobs['label'].data)
+        #correct += sum(solver.test_nets[0].blobs['prob'].data.argmax(1)
+        #               == solver.test_nets[0].blobs['label'].data.reshape(1, -1))
+        #print(solver.test_nets[0].blobs['accuracy'].data)
+        print(solver.test_nets[0].blobs['prob'].data)
+        #print(solver.test_nets[0].blobs['score'].data.argmax(1))
+        #print(solver.test_nets[0].blobs['label'].data.reshape(1, -1))
+        
+        print(solver.test_nets[0].blobs['prob'].data.argmax(1))
+        print(solver.test_nets[0].blobs['label'].data.reshape(1, -1))
+        #print(sum(solver.test_nets[0].blobs['prob'].data.argmax(1)
+        #               == solver.test_nets[0].blobs['label'].data.squeeze()))
+        correct += sum(solver.test_nets[0].blobs['prob'].data.argmax(1)
+                       == solver.test_nets[0].blobs['label'].data.squeeze())
         #print(sum(solver.test_nets[0].blobs['score'].data == solver.test_nets[0].blobs['label'].data).reshape(-1, 1))
-    accuracy = sum(correct)/100
-    print(type(accuracy))
-    print("current accuracy: %f" % accuracy) 
+    accuracy = correct/100
+    #accuracy = solver.test_nets[0].blobs['accuracy'].data
+    #print(monitor.accuracy)
+    monitor.update(loss, accuracy)
+    #print(monitor.losses)
+    #print(type(accuracy))
+    #print("current accuracy: %f" % accuracy) 
