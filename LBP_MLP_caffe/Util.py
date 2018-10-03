@@ -17,12 +17,12 @@ def listimages(img_dir):
 
 
 ######### Util method for percentage bar display #######
-def train_progress_bar_util(action):
+def progress_bar_util(action):
     cur_dir = os.getcwd()
     par_dir = os.path.join(cur_dir, os.pardir)
     toolbar_width = 40
     TOTAL_NUM_FILES = 0
-    for label in range(1,5):    # directory idx used as tag
+    for label in range(4):    # directory idx used as tag
         gallery_path = os.path.join(par_dir, action, str(label))
         imgFiles = listimages(gallery_path)
         TOTAL_NUM_FILES += len(imgFiles)
@@ -50,3 +50,27 @@ def test_progress_bar_util(action, label):
     progress_tracker = 0
     return (progress_tracker, FILE_PER_PERCENT)
 
+
+### monitor object plots the traning curve ###
+class Monitor(object):
+    def __init__(self):
+        self.i = 0
+        self.x = []
+        self.accuracy = []
+        self.losses = []
+        self.fig = plt.figure()
+        plt.ion()
+        
+        
+    def update(self, loss, accuracy):
+        self.x.append(self.i)
+        self.losses.append(loss)
+        self.accuracy.append(accuracy)
+        self.i += 1
+
+        plt.gcf().clear()
+        plt.plot(self.x, self.losses, label="loss")
+        plt.plot(self.x, self.accuracy, label="accuracy")
+        plt.legend()
+        plt.draw()
+        plt.pause(0.001)

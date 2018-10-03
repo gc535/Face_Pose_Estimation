@@ -11,7 +11,7 @@ import argparse
 
 ### util ###
 from Data_Preperation import *
-from Define_Model_Solver import *
+from Model_and_Solver import *
 
 
 #######################
@@ -21,7 +21,7 @@ ag = argparse.ArgumentParser()
 ag.add_argument("-r", "--resize-factor", required=True, help="parameters to resize the input image to desired size")    # format: -r 128,96
 ag.add_argument("-c", "--cell-size", required=True, help="parameters to define the cell size")                          # format: -c 8  (row and colume are assume to be the same)
 ag.add_argument("-o", "--model-name", required=True, help="specify output model name")
-ag.add_argument("-e", "--epoch-num", required=False, help="parameters to specify the number of training epochs")        # format: -e 50 (defualt is 50)
+ag.add_argument("-e", "--epoch-num", required=True, help="parameters to specify the number of training epochs")        # format: -e 50 (defualt is 50)
 ag.add_argument("-f", "--force-training", required=False, help="force trainig even if pre-trained model is already found, used for continue traning from checkpoint")   # format: -f true (default is None)
 args = vars(ag.parse_args())
 
@@ -35,19 +35,46 @@ cellSize = int(args["cell_size"])
 resize_row, resize_col = int(resize[0]), int(resize[1]) 
 
 # model path
-modelName = args["model_name"]+'.prototxt'
-modelPath = os.path.join(os.getcwd(), modelName)
+modelName = args["model_name"]
+trainModel = os.path.join(os.getcwd(), modelName+'_train.prototxt')
+testModel = os.path.join(os.getcwd(), modelName+'_test.prototxt')
+
 
 ### prepare data
-train_data_x, train_data_y = prepareData(resize_row, resize_col, cellSize, modelName+'_train', _oneHot=False)
-exportLMDB(train_data_x, train_data_y, modelName+'_train_data_lmdb')
+train_data_x, train_data_y = prepareData('train', resize_row, resize_col, cellSize, modelName, _oneHot=False)
+trainData = exportH5PY(train_data_x, train_data_y, modelName+'_train_data_path')
+
+test_data_x, test_data_y = prepareData('test', resize_row, resize_col, cellSize, modelName, _oneHot=False)
+testData = exportH5PY(test_data_x, test_data_y, modelName+'_test_data_path')
 
 ### prepare model and sovler
-with open(modelPath, 'w') as f:
-    f.write(str(LBP_MLP(os.path.join(os.getcwd(), modelName+'_train_data_lmdb'), 100)))
-solver_path = Solver(modelPath)
+with open(trainModel, 'w') as f:
+    f.write(str(LBP_MLP(trainData, 100)))
+
+with open(testModel, 'w') as f:
+    f.write(str(LBP_MLP(testData, 10)))
+
+solver_path = Solver(trainModel, testModel)
 solver = caffe.get_solver(solver_path)
 
 ### training loop
+
 for e in range(epochs):
-	solver.step(1	)
+    print("starting new epoch...")
+    solver.step(100)
+
+    print('epoch: ', e, 'testing...')
+    print(solver.net.blobs['loss'].data)
+    correct = 0
+    for test_it in range(10):
+        solver.test_nets[0].forward()
+        #correct += solver.test_nets[0].blobs['accuracy'].data
+        correct += sum(solver.test_nets[0].blobs['score'].data.argmax(1)
+                       == solver.test_nets[0].blobs['label'].data)
+        print(solver.test_nets[0].blobs['score'].data)
+        print(solver.test_nets[0].blobs['score'].data.argmax(1))
+        print(solver.test_nets[0].blobs['label'].data)
+        #print(sum(solver.test_nets[0].blobs['score'].data == solver.test_nets[0].blobs['label'].data).reshape(-1, 1))
+    accuracy = sum(correct)/100
+    print(type(accuracy))
+    print("current accuracy: %f" % accuracy) 
