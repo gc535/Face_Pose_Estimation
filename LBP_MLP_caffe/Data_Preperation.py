@@ -64,6 +64,7 @@ def prepareData(action, resize_row, resize_col, cellSize, modelName, _oneHot=Fal
 
         data_x = np.array(data_x, dtype='f')
         data_y = np.array(data_y, dtype=int)
+        data_x, data_y = ShuffleWithLabel(data_x, data_y)
         np.savetxt(os.path.join(cur_dir, modelName+'_'+action+'_data.txt'), data_x, fmt='%f')
         np.savetxt(os.path.join(cur_dir, modelName+'_'+action+'_label.txt'), data_y, fmt='%d')
 
@@ -78,12 +79,19 @@ def prepareData(action, resize_row, resize_col, cellSize, modelName, _oneHot=Fal
     return data_x, data_y
 
 
+### concatenate and shuffle ndarray ###
+def ShuffleWithLabel(data_x, data_y):
+    merged = np.concatenate((data_x, data_y), axis=1)
+    np.random.shuffle(merged)
+    data_x, data_y = np.hsplit(merged, [-1])
+    return data_x, data_y
+
 ### export data to hdf5 file ###
 def exportH5PY(data_x, data_y, fileName):
     assert len(data_x) != 0 and len(data_x)==len(data_y)
 
     h5pyFile = os.path.join(os.getcwd(), fileName+'.h5')
-    txtFile = os.path.join(os.getcwd(), fileName+'.txt')
+    txtFile = os.path.join(os.getcwd(), fileName+'_path.txt')
 
     if os.path.exists(h5pyFile):
         print('Target output file: "'+h5pyFile+'" found in the current directory. Continuing... ')

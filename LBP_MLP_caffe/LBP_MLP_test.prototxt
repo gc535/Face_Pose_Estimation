@@ -4,8 +4,8 @@ layer {
   top: "data"
   top: "label"
   hdf5_data_param {
-    source: "/home/brandon/DeepCam/pose_estimation/Face_Pose_Estimation/LBP_MLP_caffe/LBP_MLP_test_data_path.txt"
-    batch_size: 10
+    source: "/home/ubuntu/Desktop/Face_Pose_Estimation/LBP_MLP_caffe/LBP_MLP_test_data_path.txt"
+    batch_size: 100
   }
 }
 layer {

@@ -26,6 +26,7 @@ def LBP_MLP(hdf5, batch_size, phase):
 
 def Solver(trainModel, testModel):
     s = caffe_pb2.SolverParameter()
+    s.solver_mode: CPU
     s.random_seed = 0xCAFFE
 
     # Specify locations of the train and (maybe) test networks.
@@ -34,14 +35,14 @@ def Solver(trainModel, testModel):
 
     s.test_net.append(testModel)
     s.test_interval = 500  # Test after every 500 training iterations.
-    s.test_iter.append(10) # Test on 10 batches each time we test.
+    s.test_iter.append(300) # Test on 10 batches each time we test.
 
     # EDIT HERE to try different solvers
     # solver types include "SGD", "Adam", and "Nesterov" among others.
     s.type = "Adam"
 
     # Set the initial learning rate for SGD.
-    s.base_lr = 0.0001  # EDIT HERE to try different learning rates
+    s.base_lr = 0.001  # EDIT HERE to try different learning rates      #current best shot: 0.001
     # Set momentum to accelerate learning by
     # taking weighted average of current and previous updates.
     s.momentum = 0.99
@@ -51,7 +52,7 @@ def Solver(trainModel, testModel):
     # Set `lr_policy` to define how the learning rate changes during training.
     # This is the same policy as our default LeNet.
     s.lr_policy = 'inv'
-    s.gamma = 0.0001
+    s.gamma = 0.0001                                                   #current best shot: 0.00001
     s.power = 0.75
     # EDIT HERE to try the fixed rate (and compare with adaptive solvers)
     # `fixed` is the simplest policy that keeps the learning rate constant.
