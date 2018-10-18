@@ -2,6 +2,30 @@ import os
 import sys
 from matplotlib import pyplot as plt
 
+### monitor object plots the traning curve ###
+class Monitor(object):
+    def __init__(self):
+        self.i = 0
+        self.x = []
+        self.accuracy = []
+        self.losses = []
+        self.fig = plt.figure()
+        plt.ion()
+        
+        
+    def update(self, loss, accuracy):
+        self.x.append(self.i)
+        self.losses.append(loss)
+        self.accuracy.append(accuracy)
+        self.i += 1
+
+        plt.gcf().clear()
+        plt.plot(self.x, self.losses, label="loss")
+        plt.plot(self.x, self.accuracy, label="accuracy")
+        plt.legend()
+        plt.draw()
+        plt.pause(0.001)
+
 ######## util to load all images from current directory ##########
 def listimages(img_dir):
     if not os.path.exists(img_dir):
@@ -52,26 +76,3 @@ def test_progress_bar_util(action, label):
     return (progress_tracker, FILE_PER_PERCENT)
 
 
-### monitor object plots the traning curve ###
-class Monitor(object):
-    def __init__(self):
-        self.i = 0
-        self.x = []
-        self.accuracy = []
-        self.losses = []
-        self.fig = plt.figure()
-        plt.ion()
-        
-        
-    def update(self, loss, accuracy):
-        self.x.append(self.i)
-        self.losses.append(loss)
-        self.accuracy.append(accuracy)
-        self.i += 1
-
-        plt.gcf().clear()
-        plt.plot(self.x, self.losses, label="loss")
-        plt.plot(self.x, self.accuracy, label="accuracy")
-        plt.legend()
-        plt.draw()
-        plt.pause(0.001)
