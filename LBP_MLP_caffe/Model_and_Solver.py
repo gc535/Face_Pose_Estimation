@@ -6,25 +6,25 @@ import os
 
 
 def LBP_MLP(hdf5, batch_size, phase):
-    # our version of LeNet: a series of linear and simple nonlinear transformations
     n = caffe.NetSpec()
-    n.data, n.label = L.HDF5Data(batch_size=batch_size, source=hdf5, ntop=2)
-    #n.data, n.label = L.Data(batch_size=batch_size, backend=P.Data.LMDB, source=lmdb,
-    #                         transform_param=dict(scale=1./255), ntop=2)
+    if phase != 'inference':
+        n.data, n.label = L.HDF5Data(batch_size=batch_size, source=hdf5, ntop=2)
+    else:
+        #n.data = L.Input(input_param={'shape': {'dim': [batch_size, 1, n_rows, n_cols]}})
+        n.data = L.Input(input_param={'shape': {'dim':[1,324]}})
     n.ip1 = L.InnerProduct(n.data, num_output=100, weight_filler=dict(type='xavier'))
     n.relu1 = L.ReLU(n.ip1, in_place=True)
     n.ip2 = L.InnerProduct(n.relu1, num_output=60, weight_filler=dict(type='xavier'))
     n.relu2 = L.ReLU(n.ip2, in_place=True)
-    n.ip3 = L.InnerProduct(n.relu2, num_output=4, weight_filler=dict(type='xavier'))
+    n.ip3 = L.InnerProduct(n.relu2, num_output=2, weight_filler=dict(type='xavier'))
     if phase=='train':
         n.loss = L.SoftmaxWithLoss(n.ip3, n.label)
-    elif phase=='test':
+    elif phase=='test' or 'deploy':
         n.prob = L.Softmax(n.ip3)
-        n.accuracy = L.Accuracy(n.prob, n.label)
-    
+        #n.accuracy = L.Accuracy(n.prob, n.label)
     return n.to_proto()
 
-def Solver(trainModel, testModel):
+def Solver(trainModel, testModel, epoch_size, train_batch_size, epochs):
     s = caffe_pb2.SolverParameter()
     s.solver_mode: CPU
     s.random_seed = 0xCAFFE
@@ -59,12 +59,12 @@ def Solver(trainModel, testModel):
     #s.lr_policy = 'fixed'
 
     # Display the current training loss and accuracy every 1000 iterations.
-    s.display = 1000
+    s.display = 10000
 
     # Snapshots are files used to store networks we've trained.
     # We'll snapshot every 5K iterations -- twice during training.
-    s.snapshot = 5000
-    s.snapshot_prefix = 'LBP_MLP'
+    #s.snapshot = (epoch_size//train_batch_size)*epochs - 1
+    #s.snapshot_prefix = 'LBP_MLP'
 
     # Train on the GPU
     #s.solver_mode = caffe_pb2.SolverParameter.CPU
@@ -75,29 +75,3 @@ def Solver(trainModel, testModel):
         f.write(str(s))
 
     return solver_path
-
-
-"""
-
-def LBP_MLP(lmdb, batch_size):
-    # our version of LeNet: a series of linear and simple nonlinear transformations
-    n = caffe.NetSpec()
-    n.data, n.label = L.Data(batch_size=batch_size, backend=P.Data.LMDB, source=lmdb,
-                             transform_param=dict(scale=1./255), ntop=2)
-    n.conv1 = L.Convolution(n.data, kernel_size=5, num_output=20, weight_filler=dict(type='xavier'))
-    n.pool1 = L.Pooling(n.conv1, kernel_size=2, stride=2, pool=P.Pooling.MAX)
-    n.conv2 = L.Convolution(n.pool1, kernel_size=5, num_output=50, weight_filler=dict(type='xavier'))
-    n.pool2 = L.Pooling(n.conv2, kernel_size=2, stride=2, pool=P.Pooling.MAX)
-    n.ip1 = L.InnerProduct(n.pool2, num_output=500, weight_filler=dict(type='xavier'))
-    n.relu1 = L.ReLU(n.ip1, in_place=True)
-    n.ip2 = L.InnerProduct(n.relu1, num_output=10, weight_filler=dict(type='xavier'))
-    n.loss = L.SoftmaxWithLoss(n.ip2, n.label)
-    return n.to_proto()
-
-with open('examples/mnist/lenet_auto_train.prototxt', 'w') as f:
-    f.write(str(lenet('examples/mnist/mnist_train_lmdb', 64)))
-
-with open('examples/mnist/lenet_auto_test.prototxt', 'w') as f:
-    f.write(str(lenet('examples/mnist/mnist_test_lmdb', 100)))
-
-"""
