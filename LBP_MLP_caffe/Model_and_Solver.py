@@ -16,7 +16,7 @@ def LBP_MLP(hdf5, batch_size, phase):
     n.relu1 = L.ReLU(n.ip1, in_place=True)
     n.ip2 = L.InnerProduct(n.relu1, num_output=60, weight_filler=dict(type='xavier'))
     n.relu2 = L.ReLU(n.ip2, in_place=True)
-    n.ip3 = L.InnerProduct(n.relu2, num_output=2, weight_filler=dict(type='xavier'))
+    n.ip3 = L.InnerProduct(n.relu2, num_output=4, weight_filler=dict(type='xavier'))
     if phase=='train':
         n.loss = L.SoftmaxWithLoss(n.ip3, n.label)
     elif phase=='test' or 'deploy':

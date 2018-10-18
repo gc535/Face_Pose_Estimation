@@ -60,9 +60,9 @@ def prepareData(action, resize_row, resize_col, cellSize, modelName, _oneHot=Fal
                     onehot_encode[label] = 1
                     data_y.append(onehot_encode)
                 else:
-                    #data_y.append([label])
-                    two_label = 0 if label != 3 else 1
-                    data_y.append([two_label])
+                    data_y.append([label])
+                    #two_label = 0 if label != 3 else 1
+                    #data_y.append([two_label])
 
         data_x = np.array(data_x, dtype='f')
         data_y = np.array(data_y, dtype=int)
